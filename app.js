@@ -42,7 +42,7 @@ const { App } = require('@slack/bolt');
 // 接続タイムアウトの設定を調整
 const { MongoClient } = require('mongodb');
 
-const client = new MongoClient(process.env.MONGODB_URI, {
+const mongoclient = new MongoClient(process.env.MONGODB_URI, {
   connectTimeoutMS: 30000,    // 接続タイムアウト（デフォルト: 10秒）
   socketTimeoutMS: 45000,     // ソケットタイムアウト（デフォルト: 0）
   serverSelectionTimeoutMS: 30000, // サーバー選択タイムアウト
