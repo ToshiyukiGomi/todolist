@@ -664,7 +664,12 @@ async function generateHomeTab(userId) {
 }
 
 // アプリの起動
+// (async () => {
+//   await app.start(process.env.PORT || 3000);
+//   console.log('⚡️ Slack ToDoリストアプリが起動しました');
+// })();
 (async () => {
-  await app.start(process.env.PORT || 3000);
-  console.log('⚡️ Slack ToDoリストアプリが起動しました');
+  const port = process.env.PORT || 3000;
+  await app.start(port);
+  console.log(`⚡️ Slack ToDoリストアプリがポート ${port} で起動しました`);
 })();

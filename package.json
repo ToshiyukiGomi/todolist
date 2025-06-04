@@ -1,0 +1,21 @@
+{
+  "name": "slack-todo-app",
+  "version": "1.0.0",
+  "description": "Slack上で動作するToDoリストアプリ",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js"
+  },
+  "dependencies": {
+    "@slack/bolt": "^3.13.1",
+    "dotenv": "^16.0.3",
+    "mongoose": "^7.0.3"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": ["slack", "todo", "app"],
+  "author": "Your Name",
+  "license": "MIT"
+}
