@@ -38,6 +38,82 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const { App } = require('@slack/bolt');
+
+// 接続タイムアウトの設定を調整
+const { MongoClient } = require('mongodb');
+
+const client = new MongoClient(process.env.MONGODB_URI, {
+  connectTimeoutMS: 30000,    // 接続タイムアウト（デフォルト: 10秒）
+  socketTimeoutMS: 45000,     // ソケットタイムアウト（デフォルト: 0）
+  serverSelectionTimeoutMS: 30000, // サーバー選択タイムアウト
+  maxPoolSize: 10,            // 接続プールの最大サイズ
+  minPoolSize: 2,             // 接続プールの最小サイズ
+  retryWrites: true,          // 書き込み再試行
+  w: 'majority'               // 書き込み確認レベル
+});
+
+// 接続を使い回す（推奨）
+let db;
+
+async function connectDB() {
+  if (!db) {
+    try {
+      await client.connect();
+      db = client.db('your-database-name');
+      console.log('MongoDB connected successfully');
+    } catch (error) {
+      console.error('MongoDB connection failed:', error);
+      throw error;
+    }
+  }
+  return db;
+}
+
+// 使用例
+async function insertTodo(todoData) {
+  try {
+    const database = await connectDB();
+    const collection = database.collection('todos');
+    
+    const result = await collection.insertOne(todoData);
+    return result;
+  } catch (error) {
+    console.error('Insert todo failed:', error);
+    throw error;
+  }
+}
+
+// ToDo追加コマンド
+app.command('/todo', async ({ command, ack, respond }) => {
+  await ack();
+  
+  try {
+    const todoData = {
+      userId: command.user_id,
+      text: command.text,
+      completed: false,
+      createdAt: new Date()
+    };
+    
+    // タイムアウト対策を施した挿入処理
+    const result = await insertTodoWithRetry(todoData);
+    
+    await respond({
+      text: `✅ ToDo「${command.text}」を追加しました！`,
+      response_type: 'ephemeral'
+    });
+    
+  } catch (error) {
+    console.error('ToDo追加エラー:', error);
+    
+    await respond({
+      text: '❌ ToDoの追加に失敗しました。しばらく待ってから再試行してください。',
+      response_type: 'ephemeral'
+    });
+  }
+});
+
+
 const mongoose = require('mongoose');
 const express = require('express');
 
@@ -85,6 +161,36 @@ const app = new App({
   appToken: process.env.SLACK_APP_TOKEN,
   port: process.env.PORT || 10000
 });
+
+// タイムアウト処理を追加
+async function insertTodoWithTimeout(todoData, timeoutMs = 10000) {
+  return Promise.race([
+    insertTodo(todoData),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
+    )
+  ]);
+}
+
+// リトライ機能付き
+async function insertTodoWithRetry(todoData, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await insertTodo(todoData);
+    } catch (error) {
+      console.error(`Attempt ${attempt} failed:`, error);
+      
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      // 指数バックオフ
+      await new Promise(resolve => 
+        setTimeout(resolve, Math.pow(2, attempt) * 1000)
+      );
+    }
+  }
+}
 
 // ヘルプメッセージ
 const helpMessage = `
@@ -668,20 +774,68 @@ async function generateHomeTab(userId) {
   };
 }
 
-
+// MongoDB Atlas用の設定
+const client = new MongoClient(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  connectTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  serverSelectionTimeoutMS: 30000,
+  // Atlas用の追加設定
+  ssl: true,
+  sslValidate: true,
+  authSource: 'admin'
+});
 
 // Express アプリの設定
 const expressApp = express();
 const PORT = process.env.PORT || 10000;
 
-// ヘルスチェックエンドポイント
-expressApp.get('/', (req, res) => {
-  res.send('Slack ToDo App is running!');
-});
+// MongoDB接続状態のチェック
+async function checkMongoHealth() {
+  try {
+    const database = await connectDB();
+    await database.admin().ping();
+    console.log('MongoDB health check: OK');
+    return true;
+  } catch (error) {
+    console.error('MongoDB health check failed:', error);
+    return false;
+  }
+}
 
-expressApp.get('/health', (req, res) => {
-  res.json({ status: 'healthy' });
-});
+// 定期的なヘルスチェック
+setInterval(async () => {
+  const isHealthy = await checkMongoHealth();
+  if (!isHealthy) {
+    console.warn('MongoDB connection issues detected');
+    // 必要に応じて再接続処理
+  }
+}, 60000); // 1分ごと
+
+
+// 詳細なログを追加
+async function insertTodo(todoData) {
+  console.log('Attempting to insert todo:', todoData);
+  
+  try {
+    const startTime = Date.now();
+    const database = await connectDB();
+    console.log(`DB connection time: ${Date.now() - startTime}ms`);
+    
+    const collection = database.collection('todos');
+    const insertStartTime = Date.now();
+    
+    const result = await collection.insertOne(todoData);
+    console.log(`Insert operation time: ${Date.now() - insertStartTime}ms`);
+    console.log('Insert successful:', result.insertedId);
+    
+    return result;
+  } catch (error) {
+    console.error('Insert failed with error:', error);
+    throw error;
+  }
+}
 
 // Express サーバーを起動
 expressApp.listen(PORT, '0.0.0.0', () => {
