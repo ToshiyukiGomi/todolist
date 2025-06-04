@@ -34,14 +34,10 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 // MongoDB接続
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
-  console.log('MongoDB に接続しました');
-}).catch(err => {
-  console.error('MongoDB 接続エラー:', err);
-});
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.log('MongoDB 接続エラー:', err));
+
 
 // ToDoスキーマとモデル
 const todoSchema = new mongoose.Schema({
@@ -78,7 +74,8 @@ const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
   socketMode: true,
-  appToken: process.env.SLACK_APP_TOKEN
+  appToken: process.env.SLACK_APP_TOKEN,
+  port: process.env.PORT || 10000 // 重要: 環境変数PORTを使用
 });
 
 // ヘルプメッセージ
@@ -663,13 +660,34 @@ async function generateHomeTab(userId) {
   };
 }
 
+
+// Renderとの互換性のため、HTTPサーバーも起動
+const express = require('express');
+const expressApp = express();
+const PORT = process.env.PORT || 10000;
+
+// ヘルスチェックエンドポイント
+expressApp.get('/', (req, res) => {
+  res.send('Slack ToDo App is running!');
+});
+
+expressApp.get('/health', (req, res) => {
+  res.json({ status: 'healthy' });
+});
+
+// Express サーバーを起動
+expressApp.listen(PORT, '0.0.0.0', () => {
+  console.log(`⚡️ Express server running on port ${PORT}`);
+});
+
+// Slack アプリを起動
+(async () => {
+  await app.start();
+  console.log('⚡️ Slack ToDoリストアプリが起動しました');
+})();
+
 // アプリの起動
 // (async () => {
 //   await app.start(process.env.PORT || 3000);
 //   console.log('⚡️ Slack ToDoリストアプリが起動しました');
 // })();
-(async () => {
-  const port = process.env.PORT || 3000;
-  await app.start(port);
-  console.log(`⚡️ Slack ToDoリストアプリがポート ${port} で起動しました`);
-})();

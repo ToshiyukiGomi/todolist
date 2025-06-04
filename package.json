@@ -1,21 +1,40 @@
+// {
+//   "name": "slack-todo-app",
+//   "version": "1.0.0",
+//   "description": "Slack上で動作するToDoリストアプリ",
+//   "main": "app.js",
+//   "scripts": {
+//     "start": "node app.js",
+//     "dev": "node app.js"
+//   },
+//   "dependencies": {
+//     "@slack/bolt": "^3.13.1",
+//     "dotenv": "^16.0.3",
+//     "mongoose": "^7.0.3"
+//   },
+//   "engines": {
+//     "node": ">=14.0.0"
+//   },
+//   "keywords": ["slack", "todo", "app"],
+//   "author": "Your Name",
+//   "license": "MIT"
+// }
+
 {
   "name": "slack-todo-app",
   "version": "1.0.0",
-  "description": "Slack上で動作するToDoリストアプリ",
+  "description": "Slack Todo Application",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "node app.js"
+    "dev": "nodemon app.js"
   },
   "dependencies": {
-    "@slack/bolt": "^3.13.1",
-    "dotenv": "^16.0.3",
-    "mongoose": "^7.0.3"
+    "@slack/bolt": "^3.x.x",
+    "mongoose": "^7.x.x",
+    "express": "^4.x.x"
   },
   "engines": {
     "node": ">=14.0.0"
-  },
-  "keywords": ["slack", "todo", "app"],
-  "author": "Your Name",
-  "license": "MIT"
+  }
 }
