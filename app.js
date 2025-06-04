@@ -669,9 +669,6 @@ async function generateHomeTab(userId) {
 }
 
 
-// Renderとの互換性のため、HTTPサーバーも起動
-const express = require('express');
-
 
 // Express アプリの設定
 const expressApp = express();
