@@ -28,10 +28,18 @@ MONGODB_URI=mongodb://localhost:27017/slack-todo
 PORT=3000
 */
 
-// app.js - メインアプリケーション
+// 開発環境でのみdotenvを読み込む（本番環境では不要）
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    require('dotenv').config();
+  } catch (err) {
+    console.log('dotenv not found, using environment variables');
+  }
+}
+
 const { App } = require('@slack/bolt');
 const mongoose = require('mongoose');
-require('dotenv').config();
+const express = require('express');
 
 // MongoDB接続
 mongoose.connect(process.env.MONGODB_URI)
@@ -75,7 +83,7 @@ const app = new App({
   signingSecret: process.env.SLACK_SIGNING_SECRET,
   socketMode: true,
   appToken: process.env.SLACK_APP_TOKEN,
-  port: process.env.PORT || 10000 // 重要: 環境変数PORTを使用
+  port: process.env.PORT || 10000
 });
 
 // ヘルプメッセージ
@@ -663,6 +671,9 @@ async function generateHomeTab(userId) {
 
 // Renderとの互換性のため、HTTPサーバーも起動
 const express = require('express');
+
+
+// Express アプリの設定
 const expressApp = express();
 const PORT = process.env.PORT || 10000;
 
@@ -682,8 +693,12 @@ expressApp.listen(PORT, '0.0.0.0', () => {
 
 // Slack アプリを起動
 (async () => {
-  await app.start();
-  console.log('⚡️ Slack ToDoリストアプリが起動しました');
+  try {
+    await app.start();
+    console.log('⚡️ Slack ToDoリストアプリが起動しました');
+  } catch (error) {
+    console.error('アプリの起動に失敗しました:', error);
+  }
 })();
 
 // アプリの起動
